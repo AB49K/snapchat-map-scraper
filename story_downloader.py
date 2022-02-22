@@ -40,7 +40,7 @@ def create_database(db_file: pathlib.Path):
 #@input d is in meters
 def getEndpoint(lat1, lon1, bearing, d):
     geod = Geodesic(Constants.WGS84_a, Constants.WGS84_f)
-    d = geod.Direct(lat1, lon1, bearing, d * 1852.0)
+    d = geod.Direct(lat1, lon1, bearing, d)
     return d['lat2'], d['lon2']
 
 
