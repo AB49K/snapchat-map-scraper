@@ -1,3 +1,25 @@
+AB49K's note:
+Forked from https://github.com/nemec/snapchat-map-scraper
+This is a script modified to take a large area of snapchat public stories.
+Created to scrape public snapchats from the Russian invasion of ukraine.
+
+Add a center point and it'll scrape in a 200KM radius(Considering the curvature of the earth too)
+
+To use radiusadd
+
+```bash
+python3 story_downloader.py radiusadd --database snap.db --label "Donetsk" 48.0031604 37.7918829
+python3 story_downloader.py scrape --database snap.db --randomize --repeat
+```
+
+
+NOTE: This version has rate limiting built in due to snapchat API abuse limitations.
+It currently takes 6 hours to search through the entire 200KM radius but... snapchat stories
+last.. 24 hours I think. Rate testing isn't completely tested yet, it may need tweaking yet.
+
+
+
+
 # Snapchat Story Downloader
 
 This program can search Snapchat's public [Snap Map](https://map.snapchat.com/)

@@ -13,9 +13,9 @@ import subprocess
 import sys
 import time
 import re
-
 import requests
-
+from geographiclib.constants import Constants
+from geographiclib.geodesic import Geodesic
 
 def create_database(db_file: pathlib.Path):
     base_folder = pathlib.Path('sql')
@@ -35,6 +35,35 @@ def create_database(db_file: pathlib.Path):
             cur.close()
 
 
+
+#Stolen from StackOverflow. but not after spending a nice long time accidentally reading how to do it manually.
+#@input d is in meters
+def getEndpoint(lat1, lon1, bearing, d):
+    geod = Geodesic(Constants.WGS84_a, Constants.WGS84_f)
+    d = geod.Direct(lat1, lon1, bearing, d * 1852.0)
+    return d['lat2'], d['lon2']
+
+
+
+#Start at the centre point of the radius, then calculate each circle at a 1km/1degree iterations until we reac
+#200km radius from centre point
+
+def add_radius(db_file: pathlib.Path, lat: float, lon: float, label: str):
+    add_location(db_file, lat, lon, 16, label+"_centrepoint")
+    labelcount=0
+    bearing=0
+    distance=1000
+    while distance!=21000:
+        while bearing != 361:
+            location = getEndpoint(lat, lon, bearing, distance)
+            add_location(db_file, location[0], location[1], 16, (label + '_' + str(labelcount)))
+            labelcount+=1
+            bearing+=1
+        bearing=0
+        distance+=1000
+    
+
+#For some reason, zoom is hardcoded at 16. See no reason to change it.
 def add_location(db_file: pathlib.Path, lat: float, lon: float, zoom: float, label: str):
     with sqlite3.connect(str(db_file)) as conn:
         cur = conn.cursor()
@@ -249,6 +278,7 @@ def scrape_locations(db_file: pathlib.Path, randomize, repeat, sleep, label):
     try:
         while True:
             for loc in locations:
+                time.sleep(3)
                 epoch = get_epoch()
                 new = scrape_location(db_file, loc[0], loc[1], loc[2], loc[3], randomize, epoch)
                 combined = f'{loc[1], loc[2]}'
@@ -351,7 +381,11 @@ if __name__ == '__main__':
     #    help='Area of interest zoom level. Floating point number between 0 and 22. '
     #         'See for more info: https://docs.mapbox.com/help/glossary/zoom-level/')
     add_loc_p.add_argument('--label', type=str, help='A label used to describe the location')
-
+    add_radius_p = subp.add_parser('radiusadd', help='Adds a 200KM radius from center point')
+    add_radius_p.add_argument('--database', type=pathlib.Path, default=pathlib.Path('data.db'))
+    add_radius_p.add_argument('latitude', type=float, help='Area of interest latitude')
+    add_radius_p.add_argument('longitude', type=float, help='Area of interest latitude')
+    add_radius_p.add_argument('--label', type=str, help='A label used to describe the location')
     scrape_p = subp.add_parser('scrape', help='Scrape new media')
     scrape_p.add_argument('--database', type=pathlib.Path, default=pathlib.Path('data.db'),
                         nargs='?', help='Database file')
@@ -400,3 +434,7 @@ if __name__ == '__main__':
         review(args.database, args.player, args.label)
     elif args.subparser_name == 'export':
         export(args.database, args.export_dir, args.label)
+    elif args.subparser_name == 'radiusadd':
+        add_radius(args.database, args.latitude, args.longitude, args.label)
+       
+
